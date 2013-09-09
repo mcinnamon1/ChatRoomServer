@@ -1,14 +1,14 @@
 import java.net.*;
 import java.io.*;
 
-class ParrotServerThread implements Runnable {
+class ChatThread implements Runnable {
     
     /* The client socket and IO we are going to handle in this thread */
     protected Socket         socket;
     protected PrintWriter    out;
     protected BufferedReader in;
     
-    public ParrotServerThread(Socket socket) { //constructor for the threads (created at bottom)
+    public ChatThread(Socket socket, User user) { //constructor for the threads (created at bottom)
         /* Assign local variable */
         this.socket = socket;
         
@@ -21,7 +21,7 @@ class ParrotServerThread implements Runnable {
             System.out.println("Client connected!");
             
             /* Say hi to the client */
-            this.out.println("Welcome to the parrot server!");
+            this.out.println("Welcome to the server!");
             //immediately in constructor
             
         } catch (IOException e) {
@@ -58,8 +58,9 @@ class ParrotServerThread implements Runnable {
                 }
                 
                 /* Otherwise parrot the text */
-                this.out.println("You said: " + fromClient);
-                System.out.println("Client said: " + fromClient);
+                //use "System" so not personal to server?
+                this.out.println("You said: " + fromClient); //don't need 2nd line, just "user1: " 
+                //System.out.println("Client said: " + fromClient);
                 
             } catch (IOException e) {
                 /* On exception, stop the thread */
@@ -71,7 +72,7 @@ class ParrotServerThread implements Runnable {
     
 }
 
-public class ParrotServerExample {
+public class ChatServer {
     
     public static void main(String [] args) {
         
