@@ -25,14 +25,21 @@ class ChatThread implements Runnable {
             this.in  = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
             
             /* Some debug */
-            synchronized(this)
+            synchronized(ChatServer.threads)
             {
                 ChatServer.threads.add(this);
-            	for (int x = 0; x < ChatServer.threads.size(); x++)
-            	{
-            		ChatThread current = ChatServer.threads.get(x);
-            		current.out.println(this.user.getName() + " connected!");
-            	}
+                for (int x = 0; x < ChatServer.threads.size(); x++)
+                {
+                    ChatThread current = ChatServer.threads.get(x);
+                    if(current.equals(this))
+                    {
+                        current.out.println("Welcome to Molly and Jackie's Chat Server! You are " + this.user.getName() + ". There are " + (ChatServer.threads.size()-1) + " other users in the chatroom.");
+                    }
+                    else
+                    {
+                        current.out.println(this.user.getName() + " connected!");
+                    }
+                }
 
 
             }
@@ -57,18 +64,25 @@ class ChatThread implements Runnable {
                 
                 /* If null, connection is closed, so just finish */
                 if (fromClient == null) {
-                	 synchronized(this)
+                     synchronized(ChatServer.threads)
                      {
-                     	for (int x = 0; x < ChatServer.threads.size(); x++)
-                     	{
-                     		ChatThread current = ChatServer.threads.get(x);
-                     		current.out.println(this.user.getName() + " disconnected.");
-                     	}
-                     	this.in.close();
-                     	this.out.close();
-                     	this.socket.close();
-                     	int index = ChatServer.threads.indexOf(this.user);
-                     	ChatServer.threads.remove(index);
+                        for (int x = 0; x < ChatServer.threads.size(); x++)
+                        {
+                            ChatThread current = ChatServer.threads.get(x);
+                            if (current.equals(this))
+                            {
+                                current.out.println("You disconnected.");
+                            }
+                            else
+                            {
+                                current.out.println(this.user.getName() + " has disconnected from the room.");
+                            }
+                        }
+                        this.in.close();
+                        this.out.close();
+                        this.socket.close();
+                        int index = ChatServer.threads.indexOf(this);
+                        ChatServer.threads.remove(index);
                      }
                     return;
                 }
@@ -76,33 +90,89 @@ class ChatThread implements Runnable {
                 /* If the client said "bye", close the connection */
                 
                 if (fromClient.equals("bye")) {
-                	
-                	 synchronized(this)
+                    
+                     synchronized(ChatServer.threads)
                      {
-                     	for (int x = 0; x < ChatServer.threads.size(); x++)
-                     	{
-                     		ChatThread current = ChatServer.threads.get(x);
-                     		current.out.println(this.user.getName() + ": " + fromClient); 
-                     		current.out.println(this.user.getName() + " disconnected.");
-                     	}
-                     	this.in.close();
-                     	this.out.close();
-                     	this.socket.close();
-                     	int index = ChatServer.threads.indexOf(this.user);
-                     	ChatServer.threads.remove(index);
+                        for (int x = 0; x < ChatServer.threads.size(); x++)
+                        {
+                            ChatThread current = ChatServer.threads.get(x);
+                            if (current.equals(this))
+                            {
+                                current.out.println("You disconnected.");
+                            }
+                            else
+                            {
+                                current.out.println(this.user.getName() + " has disconnected from the room. " + this.user.getName() + " says bye!");
+                            }
+                        }
+                        this.in.close();
+                        this.out.close();
+                        this.socket.close();
+                        int index = ChatServer.threads.indexOf(this);
+                        ChatServer.threads.remove(index);
                      }
                     return;
                 }
                 
+                if (fromClient.substring(0,1).equals("/")) {
+                    
+                     synchronized(ChatServer.threads)
+                     {
+                         if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
+                         {
+                            String oldName = this.user.getName();
+                            String newName = fromClient.substring(6);
+                            this.user.changeName(newName);
+                            for (int x = 0; x < ChatServer.threads.size()   ; x++)
+                            {
+                                ChatThread current = ChatServer.threads.get(x);
+                                if(!current.equals(this))
+                                    current.out.println(oldName + " is now " + newName); 
+                                else
+                                {
+                                    current.out.println("You are now " + newName);
+                                    current.out.println(this.user.getName());
+                                }
+                            }
+
+                            
+                        }
+                        
+                        if(fromClient.length() >= 11 && fromClient.substring(0, 11).equals("/disconnect"))
+                        {
+                                for (int x = 0; x < ChatServer.threads.size(); x++)
+                            {
+                                ChatThread current = ChatServer.threads.get(x);
+                                if (current.equals(this))
+                                {
+                                    current.out.println("You disconnected.");
+                                }
+                                else
+                                {
+                                    current.out.println(this.user.getName() + " has disconnected from the room. (" + fromClient.substring(12) + ")");
+                                }
+                            }
+                            this.in.close();
+                            this.out.close();
+                            this.socket.close();
+                            int index = ChatServer.threads.indexOf(this);
+                            ChatServer.threads.remove(index);
+                        }
+                             
+                        
+                     }
+                }
+                
                 /* Otherwise parrot the text */
                 //use "System" so not personal to server?
-                synchronized(this)
+                synchronized(ChatServer.threads)
                 {
-                	for (int x = 0; x < ChatServer.threads.size(); x++)
-                	{
-                		ChatThread current = ChatServer.threads.get(x);
-                		current.out.println(user.getName() + ": " + fromClient); 
-                	}
+                    for (int x = 0; x < ChatServer.threads.size(); x++)
+                    {
+                        ChatThread current = ChatServer.threads.get(x);
+                        if(!current.equals(this))
+                            current.out.println(user.getName() + ": " + fromClient); 
+                    }
                 }
                 //System.out.println("Client said: " + fromClient);
                 
@@ -117,10 +187,10 @@ class ChatThread implements Runnable {
 }
 
 public class ChatServer {
-	public static ArrayList<ChatThread> threads;
+    public static ArrayList<ChatThread> threads;
     
     public static void main(String [] args) {
-    	threads = new ArrayList<ChatThread>();
+        threads = new ArrayList<ChatThread>();
         
         /* Check port exists */
         if (args.length < 1) {
@@ -144,7 +214,7 @@ public class ChatServer {
             try {
                 /* Get a new client */
                 Socket clientSocket = serverSocket.accept(); //blocks until something connects --> spins off
-                											//new socket for each (clientSocket)
+                                                            //new socket for each (clientSocket)
                 
                 /* Create a thread for it and start! */
                 User newUser = new User("User" + (threads.size()+1));
