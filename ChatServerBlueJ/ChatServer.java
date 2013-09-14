@@ -49,7 +49,7 @@ class ChatThread implements Runnable {
             //immediately in constructor
             
         } catch (IOException e) {
-            System.out.println("IOException: " + e);
+            System.out.println("IOException_1Class: " + e);
         }
     }
     
@@ -114,7 +114,7 @@ class ChatThread implements Runnable {
                     return;
                 }
                 
-                if (fromClient.substring(0,1).equals("/")) {
+                if (fromClient.length() > 0 && fromClient.substring(0,1).equals("/")) {
                     
                      synchronized(ChatServer.threads)
                      {
@@ -178,7 +178,7 @@ class ChatThread implements Runnable {
                 
             } catch (IOException e) {
                 /* On exception, stop the thread */
-                System.out.println("IOException: " + e);
+                System.out.println("IOException_2Run: " + e);
                 return;
             }
         }
