@@ -121,7 +121,11 @@ class ChatThread implements Runnable {
                          if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
                          {
                             String oldName = this.user.getName();
-                            String newName = fromClient.substring(6);
+                            String newName;
+                            if (fromClient.length() < 7) //JR: changed this too, just in case
+                                newName = "random";
+                            else
+                                newName = fromClient.substring(6);
                             this.user.changeName(newName);
                             for (int x = 0; x < ChatServer.threads.size()   ; x++)
                             {
@@ -134,8 +138,6 @@ class ChatThread implements Runnable {
                                     current.out.println(this.user.getName());
                                 }
                             }
-
-                            
                         }
                         
                         if(fromClient.length() >= 11 && fromClient.substring(0, 11).equals("/disconnect"))
@@ -147,9 +149,11 @@ class ChatThread implements Runnable {
                                 {
                                     current.out.println("You disconnected.");
                                 }
-                                else
+                                else //JR: this had a similar problem with the substring -- fixed it, now can disconnect without a message
                                 {
-                                    current.out.println(this.user.getName() + " has disconnected from the room. (" + fromClient.substring(12) + ")");
+                                    current.out.print(this.user.getName() + " has disconnected from the room.");
+                                    if (fromClient.length() > 11)
+                                        current.out.println(" (" + fromClient.substring(12) + ")");
                                 }
                             }
                             this.in.close();
@@ -162,16 +166,26 @@ class ChatThread implements Runnable {
                         
                      }
                 }
-                
-                /* Otherwise parrot the text */
-                //use "System" so not personal to server?
-                synchronized(ChatServer.threads)
+                else 
                 {
-                    for (int x = 0; x < ChatServer.threads.size(); x++)
+                    //Current Thoughts (Sep 13, 7:40p / JR): after doing a "/" command, this code also runs (reprinting the user's actual code
+                    //as a message in addition to our cleaner explanation) since the "/" commands can't end with a return statement. I tried
+                    //an if-else for now, and it fixed the repeat for after disconnecting, but not for after the name change.
+                    //
+                    //Also, in Fieldman's example on the worksheet, he had < > instead of :, and he also printed <username> before the "this" user
+                    //user typed anything as well. I thought that seemed more uniform, so I changed that below for now, but I'm not sure how
+                    //he got "this" user's own name to print first -- it would probably be written further up, but even if it does print, when
+                    //another user types something first, it would keep showing up as the user's name with a lot of blank lines before/after...
+                
+                    /*Outputs the current user's fromClient message on all other clients' screens*/
+                    synchronized(ChatServer.threads)
                     {
-                        ChatThread current = ChatServer.threads.get(x);
-                        if(!current.equals(this))
-                            current.out.println(user.getName() + ": " + fromClient); 
+                        for (int x = 0; x < ChatServer.threads.size(); x++)
+                        {
+                            ChatThread current = ChatServer.threads.get(x);
+                            if(!current.equals(this))
+                                current.out.println("<" + user.getName() + "> " + fromClient);
+                        }
                     }
                 }
                 //System.out.println("Client said: " + fromClient);
@@ -194,7 +208,7 @@ public class ChatServer {
         
         /* Check port exists */
         if (args.length < 1) {
-            System.out.println("Usage: ParrotServerExample <port>");
+            System.out.println("Usage: ChatServer <port>");
             System.exit(1);
         }
         
