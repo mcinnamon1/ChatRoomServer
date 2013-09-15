@@ -54,8 +54,9 @@ class ChatThread implements Runnable {
     }
     
     public void run() {
-        /* Our thread is going to read lines from the client and parrot them back.
-           It will continue to do this until an exception occurs or the connection ends
+        /* Our thread is going to read lines and commands from the client and display the message or change
+         * accordingly on each users window.
+           It will continue to do this until an exception occurs or the connection ends.
            */
         while (true) {
             try {
@@ -63,6 +64,7 @@ class ChatThread implements Runnable {
                 String fromClient = this.in.readLine();
                 
                 /* If null, connection is closed, so just finish */
+                //JR: the program hasn't actually been doing this -- not recognizing a return as a null
                 if (fromClient == null) {
                      synchronized(ChatServer.threads)
                      {
@@ -88,7 +90,6 @@ class ChatThread implements Runnable {
                 }
                 
                 /* If the client said "bye", close the connection */
-                
                 if (fromClient.equals("bye")) {
                     
                      synchronized(ChatServer.threads)
@@ -114,15 +115,16 @@ class ChatThread implements Runnable {
                     return;
                 }
                 
+                /* User commands -- initialized with "/" and a keyword */
                 if (fromClient.length() > 0 && fromClient.substring(0,1).equals("/")) {
                     
-                     synchronized(ChatServer.threads)
-                     {
-                         if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
-                         {
+                    /* /nick command: changes the user's nickname */
+                    if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
+                    {
+                        synchronized(ChatServer.threads) {
                             String oldName = this.user.getName();
                             String newName;
-                            if (fromClient.length() < 7) //JR: changed this too, just in case
+                            if (fromClient.length() < 7)
                                 newName = "random";
                             else
                                 newName = fromClient.substring(6);
@@ -135,21 +137,23 @@ class ChatThread implements Runnable {
                                 else
                                 {
                                     current.out.println("You are now " + newName);
-                                    current.out.println(this.user.getName());
                                 }
                             }
                         }
-                        
-                        if(fromClient.length() >= 11 && fromClient.substring(0, 11).equals("/disconnect"))
-                        {
-                                for (int x = 0; x < ChatServer.threads.size(); x++)
+                    }
+                    
+                    /* /disconnect command: disconnects the user and prints the user's parting message */
+                    if(fromClient.length() >= 11 && fromClient.substring(0, 11).equals("/disconnect"))
+                    {
+                        synchronized(ChatServer.threads) {
+                            for (int x = 0; x < ChatServer.threads.size(); x++)
                             {
                                 ChatThread current = ChatServer.threads.get(x);
                                 if (current.equals(this))
                                 {
                                     current.out.println("You disconnected.");
                                 }
-                                else //JR: this had a similar problem with the substring -- fixed it, now can disconnect without a message
+                                else
                                 {
                                     current.out.print(this.user.getName() + " has disconnected from the room.");
                                     if (fromClient.length() > 11)
@@ -162,20 +166,19 @@ class ChatThread implements Runnable {
                             int index = ChatServer.threads.indexOf(this);
                             ChatServer.threads.remove(index);
                         }
-                             
-                        
-                     }
+                        return;
+                    }
                 }
                 else 
                 {
-                    //Current Thoughts (Sep 13, 7:40p / JR): after doing a "/" command, this code also runs (reprinting the user's actual code
-                    //as a message in addition to our cleaner explanation) since the "/" commands can't end with a return statement. I tried
-                    //an if-else for now, and it fixed the repeat for after disconnecting, but not for after the name change.
-                    //
-                    //Also, in Fieldman's example on the worksheet, he had < > instead of :, and he also printed <username> before the "this" user
-                    //user typed anything as well. I thought that seemed more uniform, so I changed that below for now, but I'm not sure how
-                    //he got "this" user's own name to print first -- it would probably be written further up, but even if it does print, when
-                    //another user types something first, it would keep showing up as the user's name with a lot of blank lines before/after...
+                    /*Current Thoughts (Sep 15, 11a / JR): 
+                    I'm still not sure how he got "this" user's own name to print first in < > before the input -- 
+                    it would probably be written further up, but even if it does print, when another user types
+                    something first, it would keep showing up as the user's name with a lot of blank lines before/after...
+                    
+                    It won't be an issue when we know who's going at what time, but if we're on separate computers,
+                    and one user interrupts the other, than the problem above occurs.
+                    */
                 
                     /*Outputs the current user's fromClient message on all other clients' screens*/
                     synchronized(ChatServer.threads)
