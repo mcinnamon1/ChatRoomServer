@@ -116,7 +116,33 @@ class ChatThread implements Runnable {
                 }
                 
                 /* User commands -- initialized with "/" and a keyword */
+                /*
                 if (fromClient.length() > 0 && fromClient.substring(0,1).equals("/")) {
+                    
+                    /* /me command: displays an emoji (picture) -- happy, sad, angry, surprised */
+                    /*if(fromClient.length() >= 3 && fromClient.substring(0,4).equals("/me"))
+                    {
+                        synchronized(ChatServer.threads) {
+                            String oldName = this.user.getName();
+                            String newName;
+                            if (fromClient.length() < 7)
+                                newName = "random";
+                            else
+                                newName = fromClient.substring(6);
+                            this.user.changeName(newName);
+                            for (int x = 0; x < ChatServer.threads.size()   ; x++)
+                            {
+                                ChatThread current = ChatServer.threads.get(x);
+                                if(!current.equals(this))
+                                    current.out.println(oldName + " is now " + newName); 
+                                else
+                                {
+                                    current.out.println("You are now " + newName);
+                                }
+                            }
+                        }
+                    }
+                    */
                     
                     /* /nick command: changes the user's nickname */
                     if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
@@ -137,6 +163,33 @@ class ChatThread implements Runnable {
                                 else
                                 {
                                     current.out.println("You are now " + newName);
+                                }
+                            }
+                        }
+                    }
+                    
+                    /* /whisper command: whispers to someone private, specified by /whisper name: message */
+                    if(fromClient.length() >= 8 && fromClient.substring(0,8).equals("/whisper"))
+                    {
+                        synchronized(ChatServer.threads) {
+                            int colin = fromClient.indexOf(":");
+                            try {
+                                String recipient = fromClient.substring(9, colin);
+                                boolean sent = false;
+                                
+                                for (int x = 0; x < ChatServer.threads.size(); x++)
+                                {
+                                    ChatThread current = ChatServer.threads.get(x);
+                                    if(current.getName().equals(recipient))
+                                    {
+                                        current.out.println("<" + user.getName() + "> whispered: " + fromClient.substring(colin + 2));
+                                        sent = true;
+                                    }
+                                    if (sent) { break; }
+                                }
+                                
+                                if (!sent) { 
+                                    //ERROR!!
                                 }
                             }
                         }
@@ -168,19 +221,21 @@ class ChatThread implements Runnable {
                         }
                         return;
                     }
+                    
                 }
+                
+                /*Current Thoughts (Sep 15, 11a / JR): 
+                I'm still not sure how he got "this" user's own name to print first in < > before the input -- 
+                it would probably be written further up, but even if it does print, when another user types
+                something first, it would keep showing up as the user's name with a lot of blank lines before/after...
+                
+                It won't be an issue when we know who's going at what time, but if we're on separate computers,
+                and one user interrupts the other, than the problem above occurs.
+                */
+            
+                /*Outputs the current user's fromClient message on all other clients' screens*/
                 else 
                 {
-                    /*Current Thoughts (Sep 15, 11a / JR): 
-                    I'm still not sure how he got "this" user's own name to print first in < > before the input -- 
-                    it would probably be written further up, but even if it does print, when another user types
-                    something first, it would keep showing up as the user's name with a lot of blank lines before/after...
-                    
-                    It won't be an issue when we know who's going at what time, but if we're on separate computers,
-                    and one user interrupts the other, than the problem above occurs.
-                    */
-                
-                    /*Outputs the current user's fromClient message on all other clients' screens*/
                     synchronized(ChatServer.threads)
                     {
                         for (int x = 0; x < ChatServer.threads.size(); x++)
