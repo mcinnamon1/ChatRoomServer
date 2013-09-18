@@ -172,25 +172,29 @@ class ChatThread implements Runnable {
                     if(fromClient.length() >= 8 && fromClient.substring(0,8).equals("/whisper"))
                     {
                         synchronized(ChatServer.threads) {
-                            int colin = fromClient.indexOf(":");
-                            try {
-                                String recipient = fromClient.substring(9, colin);
-                                boolean sent = false;
-                                
-                                for (int x = 0; x < ChatServer.threads.size(); x++)
+                            int colon = fromClient.indexOf(":");
+                            /*if (colin < 0)
+                            {
+                                this.user.println("Make sure to add a ':' after the recipient's username!");
+                            }
+                            */
+                            String recipient = fromClient.substring(9, colon);
+                            boolean sent = false;
+                            
+                            //make while-loop that counts up & checks for sent boolean
+                            for (int x = 0; x < ChatServer.threads.size(); x++)
+                            {
+                                ChatThread current = ChatServer.threads.get(x);
+                                if(current.user.getName().equals(recipient))
                                 {
-                                    ChatThread current = ChatServer.threads.get(x);
-                                    if(current.getName().equals(recipient))
-                                    {
-                                        current.out.println("<" + user.getName() + "> whispered: " + fromClient.substring(colin + 2));
-                                        sent = true;
-                                    }
-                                    if (sent) { break; }
+                                    current.out.println("<" + user.getName() + "> whispered to you: " + fromClient.substring(colon + 2));
+                                    sent = true;
                                 }
-                                
-                                if (!sent) { 
-                                    //ERROR!!
-                                }
+                                if (sent) { break; }
+                            }
+                            
+                            if (!sent) { 
+                                this.out.println("IOException: user does not exist!");
                             }
                         }
                     }
@@ -222,7 +226,7 @@ class ChatThread implements Runnable {
                         return;
                     }
                     
-                }
+                
                 
                 /*Current Thoughts (Sep 15, 11a / JR): 
                 I'm still not sure how he got "this" user's own name to print first in < > before the input -- 
@@ -248,7 +252,8 @@ class ChatThread implements Runnable {
                 }
                 //System.out.println("Client said: " + fromClient);
                 
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 /* On exception, stop the thread */
                 System.out.println("IOException_2Run: " + e);
                 return;
