@@ -115,128 +115,171 @@ class ChatThread implements Runnable {
                     return;
                 }
                 
-                /* User commands -- initialized with "/" and a keyword */
-                /*
-                if (fromClient.length() > 0 && fromClient.substring(0,1).equals("/")) {
-                    
-                    /* /me command: displays an emoji (picture) -- happy, sad, angry, surprised */
-                    /*if(fromClient.length() >= 3 && fromClient.substring(0,4).equals("/me"))
-                    {
-                        synchronized(ChatServer.threads) {
-                            String oldName = this.user.getName();
-                            String newName;
-                            if (fromClient.length() < 7)
-                                newName = "random";
+                /* User commands -- initialized with "/" and a keyword (nick, voteoff, whisper, disconnect)*/
+                
+                /* /nick command: changes the user's nickname */
+                if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
+                {
+                    synchronized(ChatServer.threads) {
+                        String oldName = this.user.getName();
+                        String newName;
+                        if (fromClient.length() < 7)
+                            newName = "random";
+                        else
+                            newName = fromClient.substring(6);
+                        this.user.changeName(newName);
+                        for (int x = 0; x < ChatServer.threads.size()   ; x++)
+                        {
+                            ChatThread current = ChatServer.threads.get(x);
+                            if(!current.equals(this))
+                                current.out.println(oldName + " is now " + newName); 
                             else
-                                newName = fromClient.substring(6);
-                            this.user.changeName(newName);
-                            for (int x = 0; x < ChatServer.threads.size()   ; x++)
                             {
-                                ChatThread current = ChatServer.threads.get(x);
-                                if(!current.equals(this))
-                                    current.out.println(oldName + " is now " + newName); 
+                                current.out.println("You are now " + newName);
+                            }
+                        }
+                    }
+                }
+                
+                else if(fromClient.length()>= 8 && fromClient.substring(0,8).equals("/voteoff"))
+                {
+                    synchronized(ChatServer.threads) {
+                        
+                        String victim = fromClient.substring(9);
+                        boolean warningSent = false;
+                        
+                        //make while-loop that counts up & checks for sent boolean
+                        int r = 0;
+                        int numVotes = 1;
+                        int j = 0;
+                        
+                        while(j<ChatServer.threads.size() && warningSent == false)
+                        {
+                            String name = ChatServer.threads.get(j).user.getName();
+                            if (name.equals(victim))
+                            {
+                                ChatServer.threads.get(j).out.println("A vote has been issued against you. Please hold to receive your fate.");
+                                warningSent = true;
+                            }
+                            j++;   
+                        }
+                        //
+                            
+                        while(r<ChatServer.threads.size())
+                        {
+                            ChatThread current = ChatServer.threads.get(r);
+                            if(!current.equals(this) && !current.user.getName().equals(victim))
+                            {
+                                current.out.println("<" + user.getName() + "> wants to vote " + victim + " off the chat. Do you agree (yes or no)? Please hit return before entering your response.");
+                                String response = current.in.readLine();
+                                if(response.equalsIgnoreCase("yes"))
+                                {
+                                    numVotes++;
+                                }
+                            }
+                            r++;
+                        }
+
+                      
+                       if(numVotes == (ChatServer.threads.size()-1))
+                        {
+                            for(int z = 0; z < ChatServer.threads.size(); z++)
+                            {
+                                ChatThread current = ChatServer.threads.get(z);
+                                if(current.user.getName().equals(victim))
+                                {
+                                    current.out.println("You have been voted off the chat. :( Goodbye! Please close the chat.");
+                                    current.in.close();
+                                    current.out.close();
+                                    current.socket.close();
+                                    int ind = ChatServer.threads.indexOf(current);
+                                    ChatServer.threads.remove(ind);
+                                }
                                 else
                                 {
-                                    current.out.println("You are now " + newName);
+                                    current.out.println(victim + " has been voted off the chat. Way to go.");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for(int w = 0; w < ChatServer.threads.size(); w++)
+                            {
+                                ChatThread current = ChatServer.threads.get(w);
+                                if(!current.user.getName().equals(victim))
+                                {
+                                    current.out.println(victim + " did not receive enough votes against him/her to be voted off the chat. Better luck next time!");
+                                }
+                                else if (current.user.getName().equals(victim))
+                                {
+                                    current.out.println("Congratulations - you are safe... for now.");
                                 }
                             }
                         }
                     }
-                    */
+                }
                     
-                    /* /nick command: changes the user's nickname */
-                    if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
-                    {
-                        synchronized(ChatServer.threads) {
-                            String oldName = this.user.getName();
-                            String newName;
-                            if (fromClient.length() < 7)
-                                newName = "random";
+                /* /whisper command: whispers to someone private, specified by /whisper name: message */
+                else if(fromClient.length() >= 8 && fromClient.substring(0,8).equals("/whisper"))
+                {
+                    synchronized(ChatServer.threads) {
+                        int colon = fromClient.indexOf(":");
+                        /*if (colin < 0)
+                        {
+                            this.user.println("Make sure to add a ':' after the recipient's username!");
+                        }
+                        */
+                        String recipient = fromClient.substring(9, colon);
+                        boolean sent = false;
+                        
+                        //make while-loop that counts up & checks for sent boolean
+                        int x = 0;
+                        while(x<ChatServer.threads.size() && sent == false)
+                        {
+                            ChatThread current = ChatServer.threads.get(x);
+                            if(current.user.getName().equals(recipient))
+                            {
+                                current.out.println("<" + user.getName() + "> whispered to you: " + fromClient.substring(colon + 2));
+                                sent = true;
+                            }
+                            x++;
+
+                        }
+                        
+                        if (!sent) { 
+                            this.out.println("IOException: user does not exist!");
+                        }
+                    }
+                }
+                
+                /* /disconnect command: disconnects the user and prints the user's parting message */
+                else if(fromClient.length() >= 11 && fromClient.substring(0, 11).equals("/disconnect"))
+                {
+                    synchronized(ChatServer.threads) {
+                        for (int x = 0; x < ChatServer.threads.size(); x++)
+                        {
+                            ChatThread current = ChatServer.threads.get(x);
+                            if (current.equals(this))
+                            {
+                                current.out.println("You disconnected.");
+                            }
                             else
-                                newName = fromClient.substring(6);
-                            this.user.changeName(newName);
-                            for (int x = 0; x < ChatServer.threads.size()   ; x++)
                             {
-                                ChatThread current = ChatServer.threads.get(x);
-                                if(!current.equals(this))
-                                    current.out.println(oldName + " is now " + newName); 
-                                else
-                                {
-                                    current.out.println("You are now " + newName);
-                                }
+                                current.out.print(this.user.getName() + " has disconnected from the room.");
+                                if (fromClient.length() > 11)
+                                    current.out.println(" (" + fromClient.substring(12) + ")");
                             }
                         }
+                        this.in.close();
+                        this.out.close();
+                        this.socket.close();
+                        int index = ChatServer.threads.indexOf(this);
+                        ChatServer.threads.remove(index);
                     }
-                    
-                    /* /whisper command: whispers to someone private, specified by /whisper name: message */
-                    if(fromClient.length() >= 8 && fromClient.substring(0,8).equals("/whisper"))
-                    {
-                        synchronized(ChatServer.threads) {
-                            int colon = fromClient.indexOf(":");
-                            /*if (colin < 0)
-                            {
-                                this.user.println("Make sure to add a ':' after the recipient's username!");
-                            }
-                            */
-                            String recipient = fromClient.substring(9, colon);
-                            boolean sent = false;
-                            
-                            //make while-loop that counts up & checks for sent boolean
-                            for (int x = 0; x < ChatServer.threads.size(); x++)
-                            {
-                                ChatThread current = ChatServer.threads.get(x);
-                                if(current.user.getName().equals(recipient))
-                                {
-                                    current.out.println("<" + user.getName() + "> whispered to you: " + fromClient.substring(colon + 2));
-                                    sent = true;
-                                }
-                                if (sent) { break; }
-                            }
-                            
-                            if (!sent) { 
-                                this.out.println("IOException: user does not exist!");
-                            }
-                        }
-                    }
-                    
-                    /* /disconnect command: disconnects the user and prints the user's parting message */
-                    if(fromClient.length() >= 11 && fromClient.substring(0, 11).equals("/disconnect"))
-                    {
-                        synchronized(ChatServer.threads) {
-                            for (int x = 0; x < ChatServer.threads.size(); x++)
-                            {
-                                ChatThread current = ChatServer.threads.get(x);
-                                if (current.equals(this))
-                                {
-                                    current.out.println("You disconnected.");
-                                }
-                                else
-                                {
-                                    current.out.print(this.user.getName() + " has disconnected from the room.");
-                                    if (fromClient.length() > 11)
-                                        current.out.println(" (" + fromClient.substring(12) + ")");
-                                }
-                            }
-                            this.in.close();
-                            this.out.close();
-                            this.socket.close();
-                            int index = ChatServer.threads.indexOf(this);
-                            ChatServer.threads.remove(index);
-                        }
-                        return;
-                    }
-                    
+                    return;
+                }
+
                 
-                
-                /*Current Thoughts (Sep 15, 11a / JR): 
-                I'm still not sure how he got "this" user's own name to print first in < > before the input -- 
-                it would probably be written further up, but even if it does print, when another user types
-                something first, it would keep showing up as the user's name with a lot of blank lines before/after...
-                
-                It won't be an issue when we know who's going at what time, but if we're on separate computers,
-                and one user interrupts the other, than the problem above occurs.
-                */
-            
                 /*Outputs the current user's fromClient message on all other clients' screens*/
                 else 
                 {
@@ -265,10 +308,12 @@ class ChatThread implements Runnable {
 
 public class ChatServer {
     public static ArrayList<ChatThread> threads;
+    public static ArrayList<String> names;
     
     public static void main(String [] args) {
         threads = new ArrayList<ChatThread>();
-        
+        names = new ArrayList<String>();
+        names.add("James"); names.add("Bob"); names.add("Glenda"); names.add("Lafundah"); names.add("Zeus"); names.add("Athena"); names.add("Zion"); names.add("Moses"); names.add("Jimmy"); names.add("Suzy"); names.add("Lily"); names.add("Aphrodite");
         /* Check port exists */
         if (args.length < 1) {
             System.out.println("Usage: ChatServer <port>");
@@ -294,7 +339,9 @@ public class ChatServer {
                                                             //new socket for each (clientSocket)
                 
                 /* Create a thread for it and start! */
-                User newUser = new User("User" + (threads.size()+1));
+                int random = (int)(Math.random()*12);
+                User newUser = new User(names.get(random));
+                names.remove(random);
                 newUser.assignSocket(clientSocket);
                 ChatThread clientThread = new ChatThread(clientSocket, newUser);
 
