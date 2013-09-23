@@ -40,14 +40,7 @@ class ChatThread implements Runnable {
                         current.out.println(this.user.getName() + " connected!");
                     }
                 }
-
-
             }
-            
-            /* Say hi to the client */
-            this.out.println("Welcome to the server!");
-            //immediately in constructor
-            
         } catch (IOException e) {
             System.out.println("IOException_1Class: " + e);
         }
@@ -121,21 +114,21 @@ class ChatThread implements Runnable {
                 if(fromClient.length() >= 5 && fromClient.substring(0,5).equals("/nick"))
                 {
                     synchronized(ChatServer.threads) {
-                        String oldName = this.user.getName();
-                        String newName;
                         if (fromClient.length() < 7)
-                            newName = "random";
-                        else
-                            newName = fromClient.substring(6);
-                        this.user.changeName(newName);
-                        for (int x = 0; x < ChatServer.threads.size()   ; x++)
-                        {
-                            ChatThread current = ChatServer.threads.get(x);
-                            if(!current.equals(this))
-                                current.out.println(oldName + " is now " + newName); 
-                            else
+                            this.out.println("(You forgot to enter a new nickname!)");
+                        else {
+                            String oldName = this.user.getName();
+                            String newName = fromClient.substring(6);
+                            this.user.changeName(newName);
+                            for (int x = 0; x < ChatServer.threads.size()   ; x++)
                             {
-                                current.out.println("You are now " + newName);
+                                ChatThread current = ChatServer.threads.get(x);
+                                if(!current.equals(this))
+                                    current.out.println(oldName + " is now " + newName); 
+                                else
+                                {
+                                    current.out.println("You are now " + newName);
+                                }
                             }
                         }
                     }
@@ -144,78 +137,79 @@ class ChatThread implements Runnable {
                 else if(fromClient.length()>= 8 && fromClient.substring(0,8).equals("/voteoff"))
                 {
                     synchronized(ChatServer.threads) {
-                        
-                        String victim = fromClient.substring(9);
-                        boolean warningSent = false;
-                        
-                        //make while-loop that counts up & checks for sent boolean
-                        int r = 0;
-                        int numVotes = 1;
-                        int j = 0;
-                        
-                        while(j<ChatServer.threads.size() && warningSent == false)
-                        {
-                            String name = ChatServer.threads.get(j).user.getName();
-                            if (name.equals(victim))
-                            {
-                                ChatServer.threads.get(j).out.println("A vote has been issued against you. Please hold to receive your fate.");
-                                warningSent = true;
-                            }
-                            j++;   
-                        }
-                        //
+                       if (fromClient.length() < 10)
+                            this.out.println("(You forgot to enter a victim!)");
+                       else {
+                           String victim = fromClient.substring(9);
+                           boolean warningSent = false;
                             
-                        while(r<ChatServer.threads.size())
-                        {
-                            ChatThread current = ChatServer.threads.get(r);
-                            if(!current.equals(this) && !current.user.getName().equals(victim))
-                            {
-                                current.out.println("<" + user.getName() + "> wants to vote " + victim + " off the chat. Do you agree (yes or no)? Please hit return before entering your response.");
-                                String response = current.in.readLine();
-                                if(response.equalsIgnoreCase("yes"))
-                                {
-                                    numVotes++;
-                                }
-                            }
-                            r++;
-                        }
-
-                      
-                       if(numVotes == (ChatServer.threads.size()-1))
-                        {
-                            for(int z = 0; z < ChatServer.threads.size(); z++)
-                            {
-                                ChatThread current = ChatServer.threads.get(z);
-                                if(current.user.getName().equals(victim))
-                                {
-                                    current.out.println("You have been voted off the chat. :( Goodbye! Please close the chat.");
-                                    current.in.close();
-                                    current.out.close();
-                                    current.socket.close();
-                                    int ind = ChatServer.threads.indexOf(current);
-                                    ChatServer.threads.remove(ind);
-                                }
-                                else
-                                {
-                                    current.out.println(victim + " has been voted off the chat. Way to go.");
-                                }
-                            }
-                        }
-                        else
-                        {
-                            for(int w = 0; w < ChatServer.threads.size(); w++)
-                            {
-                                ChatThread current = ChatServer.threads.get(w);
-                                if(!current.user.getName().equals(victim))
-                                {
-                                    current.out.println(victim + " did not receive enough votes against him/her to be voted off the chat. Better luck next time!");
-                                }
-                                else if (current.user.getName().equals(victim))
-                                {
-                                    current.out.println("Congratulations - you are safe... for now.");
-                                }
-                            }
-                        }
+                           //make while-loop that counts up & checks for sent boolean
+                           int r = 0;
+                           int numVotes = 1;
+                           int j = 0;
+                            
+                           while(j<ChatServer.threads.size() && warningSent == false)
+                           {
+                               String name = ChatServer.threads.get(j).user.getName();
+                               if (name.equals(victim))
+                               {
+                                   ChatServer.threads.get(j).out.println("A vote has been issued against you. Please hold to receive your fate.");
+                                   warningSent = true;
+                               }
+                               j++;   
+                           }
+                                
+                           while(r<ChatServer.threads.size())
+                           {
+                               ChatThread current = ChatServer.threads.get(r);
+                               if(!current.equals(this) && !current.user.getName().equals(victim))
+                               {
+                                   current.out.println("<" + user.getName() + "> wants to vote " + victim + " off the chat. Do you agree (yes or no)? Please hit return before entering your response.");
+                                   String response = current.in.readLine();
+                                   if(response.equalsIgnoreCase("yes"))
+                                   {
+                                       numVotes++;
+                                   }
+                               }
+                               r++;
+                           }
+    
+                           if(numVotes == (ChatServer.threads.size()-1))
+                           {
+                               for(int z = 0; z < ChatServer.threads.size(); z++)
+                               {
+                                   ChatThread current = ChatServer.threads.get(z);
+                                   if(current.user.getName().equals(victim))
+                                   {
+                                       current.out.println("You have been voted off the chat. :( Goodbye! Please close the chat.");
+                                       current.in.close();
+                                       current.out.close();
+                                       current.socket.close();
+                                       int ind = ChatServer.threads.indexOf(current);
+                                       ChatServer.threads.remove(ind);
+                                   }
+                                   else
+                                   {
+                                       current.out.println(victim + " has been voted off the chat. Way to go.");
+                                   }
+                               }
+                           }
+                           else
+                           {
+                               for(int w = 0; w < ChatServer.threads.size(); w++)
+                               {
+                                   ChatThread current = ChatServer.threads.get(w);
+                                   if(!current.user.getName().equals(victim))
+                                   {
+                                       current.out.println(victim + " did not receive enough votes against him/her to be voted off the chat. Better luck next time!");
+                                   }
+                                   else if (current.user.getName().equals(victim))
+                                   {
+                                       current.out.println("Congratulations - you are safe... for now.");
+                                   }
+                               }
+                           }
+                       }
                     }
                 }
                     
@@ -223,31 +217,39 @@ class ChatThread implements Runnable {
                 else if(fromClient.length() >= 8 && fromClient.substring(0,8).equals("/whisper"))
                 {
                     synchronized(ChatServer.threads) {
-                        int colon = fromClient.indexOf(":");
-                        /*if (colin < 0)
-                        {
-                            this.user.println("Make sure to add a ':' after the recipient's username!");
-                        }
-                        */
-                        String recipient = fromClient.substring(9, colon);
-                        boolean sent = false;
-                        
-                        //make while-loop that counts up & checks for sent boolean
-                        int x = 0;
-                        while(x<ChatServer.threads.size() && sent == false)
-                        {
-                            ChatThread current = ChatServer.threads.get(x);
-                            if(current.user.getName().equals(recipient))
+                        if (fromClient.length() < 10)
+                            this.out.println("(You forgot to enter a recipient!)");
+                            
+                        else {
+                            
+                            int colon = fromClient.indexOf(":");
+                            
+                            if (colon < 0) //no ':' or forgot about writing recipient's name
+                                this.out.println("Make sure to add a ':' after the recipient's username!");
+                            
+                            else if (fromClient.length() - colon - 1 > 2) //checks for a message first; prevents potential NullPointerException
                             {
-                                current.out.println("<" + user.getName() + "> whispered to you: " + fromClient.substring(colon + 2));
-                                sent = true;
+                                String recipient = fromClient.substring(9, colon);
+                                boolean sent = false;
+                                
+                                //make while-loop that counts up & checks for sent boolean
+                                int x = 0;
+                                while(x<ChatServer.threads.size() && sent == false)
+                                {
+                                    ChatThread current = ChatServer.threads.get(x);
+                                    if(current.user.getName().equals(recipient))
+                                    {
+                                        current.out.println("<" + user.getName() + "> whispered to you: " + fromClient.substring(colon + 2));
+                                        sent = true;
+                                    }
+                                    x++;
+        
+                                }
+                                
+                                if (!sent) { 
+                                    this.out.println("IOException: user does not exist!");
+                                }
                             }
-                            x++;
-
-                        }
-                        
-                        if (!sent) { 
-                            this.out.println("IOException: user does not exist!");
                         }
                     }
                 }
@@ -285,15 +287,17 @@ class ChatThread implements Runnable {
                 {
                     synchronized(ChatServer.threads)
                     {
-                        for (int x = 0; x < ChatServer.threads.size(); x++)
+                        if (fromClient.length() > 0 && !fromClient.substring(0, 1).equals("/")) 
                         {
-                            ChatThread current = ChatServer.threads.get(x);
-                            if(!current.equals(this))
-                                current.out.println("<" + user.getName() + "> " + fromClient);
+                            for (int x = 0; x < ChatServer.threads.size(); x++)
+                            {
+                                ChatThread current = ChatServer.threads.get(x);
+                                if(!current.equals(this))
+                                    current.out.println("<" + user.getName() + "> " + fromClient);
+                            }
                         }
                     }
                 }
-                //System.out.println("Client said: " + fromClient);
                 
             }
             catch (IOException e) {
